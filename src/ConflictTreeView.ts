@@ -1,5 +1,5 @@
-import { ConflictSection } from "./ConflictSection";
-import * as vscode from "vscode";
+import { ConflictSection } from './ConflictSection'
+import * as vscode from 'vscode'
 
 export class ConflictTreeViewProvider implements vscode.TreeDataProvider<ConflictTreeItem> {
   constructor(
@@ -16,48 +16,48 @@ export class ConflictTreeViewProvider implements vscode.TreeDataProvider<Conflic
         // resourceUri: item.uri,
         label: item.label,
         command: {
-          command: "somanyconflicts-jj.openFileAt",
-          title: "Open",
+          command: 'somanyconflicts-jj.openFileAt',
+          title: 'Open',
           arguments: [item.uri, item.range],
         },
         collapsibleState: vscode.TreeItemCollapsibleState.None,
         iconPath:
           item.state === -1 ? this.conflictIconPath : this.resolvedIconPath,
-      };
+      }
     } else if (item.uri) {
       return {
         resourceUri: item.uri,
         collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
         iconPath: vscode.ThemeIcon.File,
-      };
+      }
     } else if (item.label) {
       return new vscode.TreeItem(
         item.label,
         vscode.TreeItemCollapsibleState.Expanded,
-      );
+      )
     } else {
-      throw new Error("data error");
+      throw new Error('data error')
     }
   }
 
   getChildren(element?: ConflictTreeItem): Promise<ConflictTreeItem[]> {
     if (element) {
-      return Promise.resolve(element.children);
+      return Promise.resolve(element.children)
     } else {
-      return Promise.resolve(this.conflict);
+      return Promise.resolve(this.conflict)
     }
   }
 
   private _onDidChangeTreeData: vscode.EventEmitter<
     ConflictTreeItem | undefined | null | void
-  > = new vscode.EventEmitter<ConflictTreeItem | undefined | null | void>();
+  > = new vscode.EventEmitter<ConflictTreeItem | undefined | null | void>()
 
   readonly onDidChangeTreeData: vscode.Event<
     ConflictTreeItem | undefined | null | void
-  > = this._onDidChangeTreeData.event;
+  > = this._onDidChangeTreeData.event
 
   refresh(data: ConflictTreeItem | undefined | null | void): void {
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire()
   }
 }
 
@@ -82,25 +82,25 @@ export async function conflictSectionsToTreeItem(
   allConflictSections: ConflictSection[],
   parents: ConflictTreeItem[],
 ) {
-  parents.length = 0;
+  parents.length = 0
   for (const conflictSection of allConflictSections) {
     const doc = await vscode.workspace.openTextDocument(
       conflictSection.conflict.uri!,
-    );
-    const conflict = conflictSection.conflict;
+    )
+    const conflict = conflictSection.conflict
     let start = new vscode.Position(
       conflict.range.start.line + 1,
       conflict.range.start.character,
-    );
+    )
     if (conflictSection.hasResolved) {
       start = new vscode.Position(
         conflict.range.start.line,
         conflict.range.start.character,
-      );
+      )
     }
-    const range = new vscode.Range(start, conflict.range.end);
+    const range = new vscode.Range(start, conflict.range.end)
     const label =
-      conflictSection.printLineRange() + " " + doc.getText(range).trimLeft();
+      conflictSection.printLineRange() + ' ' + doc.getText(range).trimLeft()
     const newConflict = new ConflictTreeItem(
       label,
       conflict.uri,
@@ -110,13 +110,13 @@ export async function conflictSectionsToTreeItem(
       conflictSection.hasResolved
         ? ConflictTreeItemState.resolved
         : ConflictTreeItemState.conflicting,
-    );
-    let flag = false;
+    )
+    let flag = false
     for (const parent of parents) {
       if (newConflict.uri === parent.uri) {
-        parent.children.push(newConflict);
-        flag = true;
-        break;
+        parent.children.push(newConflict)
+        flag = true
+        break
       }
     }
     if (!flag) {
@@ -127,47 +127,47 @@ export async function conflictSectionsToTreeItem(
         [newConflict],
         vscode.TreeItemCollapsibleState.Expanded,
         ConflictTreeItemState.default,
-      );
-      parents.push(newParent);
+      )
+      parents.push(newParent)
     }
   }
-  return parents;
+  return parents
 }
 
 export async function suggestionsToTreeItem(
   suggestions: ConflictSection[][],
   parents: ConflictTreeItem[],
 ) {
-  let idx = 0;
-  parents.length = 0;
+  let idx = 0
+  parents.length = 0
   for (const group of suggestions) {
-    idx++;
+    idx++
     const groupRoot = new ConflictTreeItem(
-      "Group" + idx + " (" + group.length + ")",
+      'Group' + idx + ' (' + group.length + ')',
       undefined,
       undefined,
       [],
       vscode.TreeItemCollapsibleState.Expanded,
       0,
-    );
+    )
     for (const conflictSection of group) {
       const doc = await vscode.workspace.openTextDocument(
         conflictSection.conflict.uri!,
-      );
-      const conflict = conflictSection.conflict;
+      )
+      const conflict = conflictSection.conflict
       let start = new vscode.Position(
         conflict.range.start.line + 1,
         conflict.range.start.character,
-      );
+      )
       if (conflictSection.hasResolved) {
         start = new vscode.Position(
           conflict.range.start.line,
           conflict.range.start.character,
-        );
+        )
       }
-      const range = new vscode.Range(start, conflict.range.end);
+      const range = new vscode.Range(start, conflict.range.end)
       const label =
-        conflictSection.printLineRange() + " " + doc.getText(range).trimLeft();
+        conflictSection.printLineRange() + ' ' + doc.getText(range).trimLeft()
       const newConflict = new ConflictTreeItem(
         label,
         conflict.uri,
@@ -175,10 +175,10 @@ export async function suggestionsToTreeItem(
         [],
         vscode.TreeItemCollapsibleState.None,
         conflictSection.hasResolved ? 1 : -1,
-      );
-      groupRoot.children.push(newConflict);
+      )
+      groupRoot.children.push(newConflict)
     }
-    parents.push(groupRoot);
+    parents.push(groupRoot)
   }
-  return parents;
+  return parents
 }

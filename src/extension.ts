@@ -1,24 +1,24 @@
-import { Parser } from "./Parser";
-import { Constants } from "./Constants";
-import { Strategy, getStrategyCount } from "./Strategy";
+import { Parser } from './Parser'
+import { Constants } from './Constants'
+import { getStrategyCount } from './Strategy'
 import {
   conflictSectionsToTreeItem,
   ConflictTreeItem,
   ConflictTreeViewProvider,
   suggestionsToTreeItem,
-} from "./ConflictTreeView";
+} from './ConflictTreeView'
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import * as vscode from "vscode";
-import { Conflict } from "./Conflict";
-import { ConflictLensProvider } from "./ConflictLensProvider";
-import { SoManyConflicts } from "./SoManyConflicts";
-import { ConflictSection } from "./ConflictSection";
-import { Queue } from "queue-typescript";
-import { MutexUtils } from "./MutexUtils";
-import { ISection } from "./ISection";
+import * as vscode from 'vscode'
+import { Conflict } from './Conflict'
+import { ConflictLensProvider } from './ConflictLensProvider'
+import { SoManyConflicts } from './SoManyConflicts'
+import { ConflictSection } from './ConflictSection'
+import { Queue } from 'queue-typescript'
+import { MutexUtils } from './MutexUtils'
+import { ISection } from './ISection'
 
-const Graph = require("@dagrejs/graphlib").Graph;
+const Graph = require('@dagrejs/graphlib').Graph
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -27,77 +27,77 @@ export function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when your extension is activated
   console.log(
     'Congratulations, your extension "somanyconflicts-jj" is now active!',
-  );
+  )
 
-  let message: string = "";
+  let message: string = ''
   // raw conflict blocks
-  const allConflictSections: ConflictSection[] = [];
+  const allConflictSections: ConflictSection[] = []
   // mutex lock
-  const conflictSectionLock = new MutexUtils();
+  const conflictSectionLock = new MutexUtils()
   // TextSection around ConflictSection can provide conflict context information
-  let sectionsByFile = new Map<string, ISection[]>();
-  let conflictSectionsByFile = new Map<string, ConflictSection[]>();
-  let graph: typeof Graph | undefined;
-  const conflictIconPath: string = context.asAbsolutePath("media/alert.png");
-  const resolvedIconPath: string = context.asAbsolutePath("media/right.png");
+  let sectionsByFile = new Map<string, ISection[]>()
+  let conflictSectionsByFile = new Map<string, ConflictSection[]>()
+  let graph: typeof Graph | undefined
+  const conflictIconPath: string = context.asAbsolutePath('media/alert.png')
+  const resolvedIconPath: string = context.asAbsolutePath('media/right.png')
 
-  addSubcommandOpenFile(context);
+  addSubcommandOpenFile(context)
 
   const [suggestedConflictTreeRoot, suggestedConflictTreeViewProvider] =
-    createTree("suggestedConflictTreeView", conflictIconPath, resolvedIconPath);
+    createTree('suggestedConflictTreeView', conflictIconPath, resolvedIconPath)
   const [allConflictTreeRoot, allConflictTreeViewProvider] = createTree(
-    "allConflictTreeView",
+    'allConflictTreeView',
     conflictIconPath,
     resolvedIconPath,
-  );
+  )
 
   const decorationType: vscode.TextEditorDecorationType =
     vscode.window.createTextEditorDecorationType({
-      backgroundColor: { id: "somanyconflicts.background_color" },
-      gutterIconSize: "contain",
-      gutterIconPath: context.asAbsolutePath("media/right.png"),
+      backgroundColor: { id: 'somanyconflicts.background_color' },
+      gutterIconSize: 'contain',
+      gutterIconPath: context.asAbsolutePath('media/right.png'),
       isWholeLine: true,
-    });
+    })
 
   // check if the change edits a conflict section
   vscode.workspace.onDidChangeTextDocument(async (event) => {
     if (event.contentChanges.length > 0) {
       // currently support well for code lens resolution, may contain bugs for manual edit
-      const fsPath = event.document.uri.fsPath;
+      const fsPath = event.document.uri.fsPath
       if (conflictSectionsByFile.has(fsPath)) {
-        const conflictSections = conflictSectionsByFile.get(fsPath);
+        const conflictSections = conflictSectionsByFile.get(fsPath)
         if (conflictSections && conflictSections.length > 0) {
           for (const change of event.contentChanges) {
-            const changeLines = Parser.getLines(change.text);
+            const changeLines = Parser.getLines(change.text)
             for (const conflictSection of conflictSections) {
-              const conflict = conflictSection.conflict;
+              const conflict = conflictSection.conflict
               if (change.range.contains(conflict.range)) {
                 if (
                   change.text.includes(Constants.conflictMarkerStart) &&
                   change.text.includes(Constants.conflictMarkerEnd)
                 ) {
                   // undo operation detected
-                  reversePropagateStrategy(conflictSection);
-                  conflictSection.hasResolved = false;
-                  conflictSection.stragegy = { index: 0, display: "Unknown" };
-                  conflictSection.resolvedCode = "";
+                  reversePropagateStrategy(conflictSection)
+                  conflictSection.hasResolved = false
+                  conflictSection.stragegy = { index: 0, display: 'Unknown' }
+                  conflictSection.resolvedCode = ''
                   await updateRanges(
                     fsPath,
                     conflictSections,
                     change,
                     changeLines.length,
-                  );
+                  )
                 } else {
                   // resolved operation detected
                   // compare text line by line to update the strategy prob
-                  conflictSection.checkStrategy(change.text);
+                  conflictSection.checkStrategy(change.text)
                   console.log(
-                    "Manually resolved: " +
+                    'Manually resolved: ' +
                       conflictSection.conflict.uri?.fsPath +
                       conflictSection.printLineRange() +
-                      " via " +
+                      ' via ' +
                       conflictSection.stragegy.display,
-                  );
+                  )
                   if (changeLines.length === 0) {
                     conflictSection.updateRangeWithoutComputing(
                       new vscode.Range(
@@ -110,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
                           0,
                         ),
                       ),
-                    );
+                    )
                   } else {
                     conflictSection.updateRange(
                       new vscode.Range(
@@ -125,16 +125,16 @@ export function activate(context: vscode.ExtensionContext) {
                           0,
                         ),
                       ),
-                    );
+                    )
                   }
-                  propagateStrategy(conflictSection);
+                  propagateStrategy(conflictSection)
                   await updateRanges(
                     fsPath,
                     conflictSections,
                     change,
                     changeLines.length,
-                  );
-                  return;
+                  )
+                  return
                 }
               }
             }
@@ -142,7 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
       }
     }
-  });
+  })
 
   async function updateRanges(
     fsPath: string,
@@ -150,262 +150,262 @@ export function activate(context: vscode.ExtensionContext) {
     change: vscode.TextDocumentContentChangeEvent,
     afterChangeLinesCnt: number,
   ) {
-    let newSections: ConflictSection[] = [];
+    let newSections: ConflictSection[] = []
 
     if (vscode.window.activeTextEditor) {
       newSections = SoManyConflicts.scanConflictsInFile(
         fsPath,
         vscode.window.activeTextEditor.document.getText(),
-      );
+      )
       // remove decoration after resolved
-      vscode.window.activeTextEditor.setDecorations(decorationType, []);
+      vscode.window.activeTextEditor.setDecorations(decorationType, [])
     } else {
-      newSections = SoManyConflicts.scanConflictsInFile(fsPath);
+      newSections = SoManyConflicts.scanConflictsInFile(fsPath)
     }
 
-    let cnt: number = 0;
+    let cnt: number = 0
     const changeLinesCnt: number =
-      change.range.end.line - change.range.start.line - afterChangeLinesCnt;
+      change.range.end.line - change.range.start.line - afterChangeLinesCnt
     for (let i = 0; i < oldConflictSections.length; ++i) {
       if (oldConflictSections[i].hasResolved) {
-        cnt += 1;
-        const start = oldConflictSections[i].conflict.range.start.line;
-        const charS = oldConflictSections[i].conflict.range.start.character;
-        const end = oldConflictSections[i].conflict.range.end.line;
-        const charE = oldConflictSections[i].conflict.range.end.character;
+        cnt += 1
+        const start = oldConflictSections[i].conflict.range.start.line
+        const charS = oldConflictSections[i].conflict.range.start.character
+        const end = oldConflictSections[i].conflict.range.end.line
+        const charE = oldConflictSections[i].conflict.range.end.character
         if (change.range.end.line < start) {
           oldConflictSections[i].updateRange(
             new vscode.Range(
               new vscode.Position(start - changeLinesCnt, charS),
               new vscode.Position(end - changeLinesCnt, charE),
             ),
-          );
+          )
         }
       } else {
         if (i - cnt >= 0 && i - cnt < newSections.length) {
           oldConflictSections[i].updateRange(
             newSections[i - cnt].conflict.range,
-          );
+          )
         }
       }
     }
 
     conflictSectionsToTreeItem(allConflictSections, allConflictTreeRoot).then(
       () => {
-        allConflictTreeViewProvider.refresh();
+        allConflictTreeViewProvider.refresh()
       },
-    );
-    await vscode.commands.executeCommand("somanyconflicts-jj.start");
+    )
+    await vscode.commands.executeCommand('somanyconflicts-jj.start')
   }
 
   // refresh both views and rerun both commands
   context.subscriptions.push(
-    vscode.commands.registerCommand("somanyconflicts-jj.refresh", async () => {
-      allConflictSections.length = 0;
-      conflictSectionsByFile = new Map<string, ConflictSection[]>();
-      graph = undefined;
+    vscode.commands.registerCommand('somanyconflicts-jj.refresh', async () => {
+      allConflictSections.length = 0
+      conflictSectionsByFile = new Map<string, ConflictSection[]>()
+      graph = undefined
       await conflictSectionsToTreeItem([], []).then(() => {
-        allConflictTreeViewProvider.refresh();
-      });
+        allConflictTreeViewProvider.refresh()
+      })
       await suggestionsToTreeItem([], []).then(() => {
-        suggestedConflictTreeViewProvider.refresh();
-      });
-      await vscode.commands.executeCommand("somanyconflicts-jj.scan");
-      await vscode.commands.executeCommand("somanyconflicts-jj.start");
+        suggestedConflictTreeViewProvider.refresh()
+      })
+      await vscode.commands.executeCommand('somanyconflicts-jj.scan')
+      await vscode.commands.executeCommand('somanyconflicts-jj.start')
     }),
-  );
+  )
 
   // init: scan all conflicts in the current workspace
   context.subscriptions.push(
-    vscode.commands.registerCommand("somanyconflicts-jj.scan", async () => {
-      allConflictSections.length = 0;
-      conflictSectionsByFile = new Map<string, ConflictSection[]>();
-      graph = undefined;
+    vscode.commands.registerCommand('somanyconflicts-jj.scan', async () => {
+      allConflictSections.length = 0
+      conflictSectionsByFile = new Map<string, ConflictSection[]>()
+      graph = undefined
       await conflictSectionsToTreeItem([], []).then(() => {
-        allConflictTreeViewProvider.refresh();
-      });
+        allConflictTreeViewProvider.refresh()
+      })
       await suggestionsToTreeItem([], []).then(() => {
-        suggestedConflictTreeViewProvider.refresh();
-      });
+        suggestedConflictTreeViewProvider.refresh()
+      })
 
       if (!isReady()) {
-        await init();
+        await init()
       }
       if (allConflictSections.length === 0) {
         vscode.window.showWarningMessage(
-          "Found no JJ conflicts in the current workspace!",
-        );
+          'Found no JJ conflicts in the current workspace!',
+        )
       } else {
         conflictSectionLock.dispatch(async () => {
           await conflictSectionsToTreeItem(
             allConflictSections,
             allConflictTreeRoot,
           ).then(() => {
-            allConflictTreeViewProvider.refresh();
-            vscode.commands.executeCommand("allConflictTreeView.focus");
-          });
-        });
+            allConflictTreeViewProvider.refresh()
+            vscode.commands.executeCommand('allConflictTreeView.focus')
+          })
+        })
       }
     }),
-  );
+  )
 
   // feature1: topo-sort for the optimal order to resolve conflicts
   context.subscriptions.push(
-    vscode.commands.registerCommand("somanyconflicts-jj.start", async () => {
+    vscode.commands.registerCommand('somanyconflicts-jj.start', async () => {
       if (!isReady()) {
-        await vscode.commands.executeCommand("somanyconflicts-jj.scan");
+        await vscode.commands.executeCommand('somanyconflicts-jj.scan')
       }
       vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: "Finding the starting point to resolve JJ conflicts...",
+          title: 'Finding the starting point to resolve JJ conflicts...',
           cancellable: true,
         },
         async (progress, token) => {
           token.onCancellationRequested(() => {
-            console.log("User canceled the scanning.");
-          });
+            console.log('User canceled the scanning.')
+          })
 
           const groupedConflictSections: ConflictSection[][] =
-            SoManyConflicts.suggestStartingPoint(allConflictSections, graph);
+            SoManyConflicts.suggestStartingPoint(allConflictSections, graph)
           conflictSectionLock.dispatch(async () => {
             await suggestionsToTreeItem(
               groupedConflictSections,
               suggestedConflictTreeRoot,
             ).then(() => {
-              suggestedConflictTreeViewProvider.refresh();
-              vscode.commands.executeCommand("suggestedConflictTreeView.focus");
-            });
-          });
-          progress.report({ increment: 100 });
+              suggestedConflictTreeViewProvider.refresh()
+              vscode.commands.executeCommand('suggestedConflictTreeView.focus')
+            })
+          })
+          progress.report({ increment: 100 })
         },
-      );
+      )
     }),
-  );
+  )
 
   const codeLensProviderDisposable = vscode.languages.registerCodeLensProvider(
-    "*",
+    '*',
     new ConflictLensProvider(),
-  );
+  )
   // push the command and CodeLens provider to the context so it can be disposed of later
-  context.subscriptions.push(codeLensProviderDisposable);
+  context.subscriptions.push(codeLensProviderDisposable)
 
   // feature2: recommend the next (related or similar) conflict to resolve
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "somanyconflicts-jj.next",
+      'somanyconflicts-jj.next',
       async (...args: any[]) => {
-        const conflictIndex: number = findSelectedConflictIndex(args);
+        const conflictIndex: number = findSelectedConflictIndex(args)
 
         if (conflictIndex < 0) {
           vscode.window.showWarningMessage(
-            "Editor cursor is not within any JJ conflict!",
-          );
-          return;
+            'Editor cursor is not within any JJ conflict!',
+          )
+          return
         }
 
         if (!isReady()) {
-          await vscode.commands.executeCommand("somanyconflicts-jj.scan");
+          await vscode.commands.executeCommand('somanyconflicts-jj.scan')
         }
         // locate the focusing conflict and start from it
         SoManyConflicts.suggestRelatedConflicts(
           allConflictSections,
           conflictIndex,
           graph,
-        );
+        )
       },
     ),
-  );
+  )
 
   // feature3: recommend resolution strategy given conflict resolved before
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "somanyconflicts-jj.how",
+      'somanyconflicts-jj.how',
       async (...args: any[]) => {
-        const conflictIndex: number = findSelectedConflictIndex(args);
+        const conflictIndex: number = findSelectedConflictIndex(args)
 
         if (conflictIndex < 0) {
           vscode.window.showWarningMessage(
-            "Editor cursor is not within any JJ conflict!",
-          );
-          return;
+            'Editor cursor is not within any JJ conflict!',
+          )
+          return
         }
         if (!isReady()) {
-          await vscode.commands.executeCommand("somanyconflicts-jj.scan");
+          await vscode.commands.executeCommand('somanyconflicts-jj.scan')
         }
         SoManyConflicts.suggestResolutionStrategy(
           allConflictSections,
           conflictIndex,
           decorationType,
-        );
+        )
       },
     ),
-  );
+  )
 
   // check if the workspace is readily prepared
   function isReady(): boolean {
-    return allConflictSections.length !== 0 && graph && graph !== undefined;
+    return allConflictSections.length !== 0 && graph && graph !== undefined
   }
 
   async function scanConflictsInFolder(folder: vscode.WorkspaceFolder) {
     await conflictSectionLock.dispatch(async () => {
       if (allConflictSections.length === 0) {
         [sectionsByFile, conflictSectionsByFile] =
-          await SoManyConflicts.scanAllConflicts(folder.uri.fsPath);
+          await SoManyConflicts.scanAllConflicts(folder.uri.fsPath)
 
         for (const conflictSections of conflictSectionsByFile.values()) {
           for (const section of conflictSections) {
-            section.index = allConflictSections.length.toString();
-            allConflictSections.push(section);
+            section.index = allConflictSections.length.toString()
+            allConflictSections.push(section)
           }
         }
       }
-    });
+    })
   }
 
   async function init(): Promise<any> {
-    const { workspaceFolders } = vscode.workspace;
+    const { workspaceFolders } = vscode.workspace
     if (!workspaceFolders) {
-      message = "Please open a workspace with JJ conflicts first.";
-      vscode.window.showWarningMessage(message);
-      return;
+      message = 'Please open a workspace with JJ conflicts first.'
+      vscode.window.showWarningMessage(message)
+      return
     }
 
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "Scanning so many JJ conflicts in your workspace...",
+        title: 'Scanning so many JJ conflicts in your workspace...',
         cancellable: true,
       },
       async (progress, token) => {
         token.onCancellationRequested(() => {
-          console.log("User canceled the scanning.");
-        });
-        await Promise.all(workspaceFolders.map(scanConflictsInFolder));
+          console.log('User canceled the scanning.')
+        })
+        await Promise.all(workspaceFolders.map(scanConflictsInFolder))
 
         if (allConflictSections.length === 0) {
-          message = "Found no JJ conflicts in the current workspace!";
-          vscode.window.showWarningMessage(message);
-          return;
+          message = 'Found no JJ conflicts in the current workspace!'
+          vscode.window.showWarningMessage(message)
+          return
         } else {
           // construct a graph to keep relations of conflicts
           graph = SoManyConflicts.constructGraph(
             allConflictSections,
             sectionsByFile,
-          );
+          )
           if (!graph) {
-            message = "Failed to construct the graph for conflicts.";
-            vscode.window.showErrorMessage(message);
-            return;
+            message = 'Failed to construct the graph for conflicts.'
+            vscode.window.showErrorMessage(message)
+            return
           }
         }
         showNotification(
-          "Remaining " +
+          'Remaining ' +
             allConflictSections.length +
-            " JJ conflicts in the current workspace.",
-        );
+            ' JJ conflicts in the current workspace.',
+        )
       },
-    );
+    )
   }
 
   function showNotification(title: string) {
@@ -418,44 +418,44 @@ export function activate(context: vscode.ExtensionContext) {
       async (progress, token) => {
         for (let i = 0; i < 10; i++) {
           setTimeout(() => {
-            progress.report({ increment: i * 10, message: title });
-          }, 10000);
+            progress.report({ increment: i * 10, message: title })
+          }, 10000)
         }
       },
-    );
+    )
   }
 
   function propagateStrategy(section: ConflictSection) {
-    if (!graph) return;
+    if (!graph) return
 
-    const stratCount = getStrategyCount(section.conflict.sideCount);
-    let strategiesProb: Array<number> = new Array<number>(stratCount).fill(0);
+    const stratCount = getStrategyCount(section.conflict.sideCount)
+    let strategiesProb: Array<number> = new Array<number>(stratCount).fill(0)
     if (section.hasResolved) {
-      strategiesProb[section.stragegy.index] = 1.0;
+      strategiesProb[section.stragegy.index] = 1.0
     } else {
-      strategiesProb = section.strategiesProb;
+      strategiesProb = section.strategiesProb
     }
     // save index
-    const visited = new Set<string>();
-    const queue = new Queue<string>();
-    queue.enqueue(section.index);
-    visited.add(section.index);
+    const visited = new Set<string>()
+    const queue = new Queue<string>()
+    queue.enqueue(section.index)
+    visited.add(section.index)
     while (queue.length > 0) {
-      const temp = queue.dequeue();
+      const temp = queue.dequeue()
       if (temp) {
-        visited.add(temp);
-        const edges = graph.nodeEdges(temp);
+        visited.add(temp)
+        const edges = graph.nodeEdges(temp)
         if (edges && edges.length > 0) {
           for (const e of edges) {
             if (!visited.has(e.v)) {
-              const conflictSection = allConflictSections[e.v];
-              conflictSection.updateStrategy(strategiesProb, graph.edge(e));
-              queue.enqueue(e.v);
+              const conflictSection = allConflictSections[e.v]
+              conflictSection.updateStrategy(strategiesProb, graph.edge(e))
+              queue.enqueue(e.v)
             }
             if (!visited.has(e.w)) {
-              const conflictSection = allConflictSections[e.w];
-              conflictSection.updateStrategy(strategiesProb, graph.edge(e));
-              queue.enqueue(e.w);
+              const conflictSection = allConflictSections[e.w]
+              conflictSection.updateStrategy(strategiesProb, graph.edge(e))
+              queue.enqueue(e.w)
             }
           }
         }
@@ -464,42 +464,42 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   function reversePropagateStrategy(section: ConflictSection) {
-    if (!graph) return;
+    if (!graph) return
 
-    const stratCount = getStrategyCount(section.conflict.sideCount);
-    let strategiesProb: Array<number> = new Array<number>(stratCount).fill(0);
+    const stratCount = getStrategyCount(section.conflict.sideCount)
+    let strategiesProb: Array<number> = new Array<number>(stratCount).fill(0)
     if (section.hasResolved) {
-      strategiesProb[section.stragegy.index] = 1.0;
+      strategiesProb[section.stragegy.index] = 1.0
     } else {
-      strategiesProb = section.strategiesProb;
+      strategiesProb = section.strategiesProb
     }
     // save index
-    const visited = new Set<string>();
-    const queue = new Queue<string>();
-    queue.enqueue(section.index);
-    visited.add(section.index);
+    const visited = new Set<string>()
+    const queue = new Queue<string>()
+    queue.enqueue(section.index)
+    visited.add(section.index)
     while (queue.length > 0) {
-      const temp = queue.dequeue();
+      const temp = queue.dequeue()
       if (temp) {
-        visited.add(temp);
-        const edges = graph.nodeEdges(temp);
+        visited.add(temp)
+        const edges = graph.nodeEdges(temp)
         if (edges && edges.length > 0) {
           for (const e of edges) {
             if (!visited.has(e.v)) {
-              const conflictSection = allConflictSections[e.v];
+              const conflictSection = allConflictSections[e.v]
               conflictSection.reverseUpdatedStrategy(
                 strategiesProb,
                 graph.edge(e),
-              );
-              queue.enqueue(e.v);
+              )
+              queue.enqueue(e.v)
             }
             if (!visited.has(e.w)) {
-              const conflictSection = allConflictSections[e.w];
+              const conflictSection = allConflictSections[e.w]
               conflictSection.reverseUpdatedStrategy(
                 strategiesProb,
                 graph.edge(e),
-              );
-              queue.enqueue(e.w);
+              )
+              queue.enqueue(e.w)
             }
           }
         }
@@ -508,56 +508,56 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   function findSelectedConflictIndex(args: any[]): number {
-    if (args[0] === "current-conflict") {
-      const invokedConflict: Conflict = args[1];
+    if (args[0] === 'current-conflict') {
+      const invokedConflict: Conflict = args[1]
       // match the conflict and get its index
       for (const i in allConflictSections) {
-        const conflict = allConflictSections[i].conflict;
+        const conflict = allConflictSections[i].conflict
         if (
           conflict.uri?.path === invokedConflict.uri?.path &&
           conflict.range.isEqual(invokedConflict.range)
         ) {
-          return +allConflictSections[i].index;
+          return +allConflictSections[i].index
         }
       }
     } else {
       // attempt to find a conflict that matches the current cursor position
       if (vscode.window.activeTextEditor) {
         for (const i in allConflictSections) {
-          const conflict = allConflictSections[i].conflict;
+          const conflict = allConflictSections[i].conflict
           if (
             conflict.range.contains(
               vscode.window.activeTextEditor.selection.active,
             )
           ) {
-            return +i;
+            return +i
           }
         }
       }
     }
-    return -1;
+    return -1
   }
 }
 // this method is called when your extension is deactivated
 export function deactivate() {}
 
 function addSubcommandOpenFile(context: vscode.ExtensionContext) {
-  const commandsToOpenFiles = "somanyconflicts-jj.openFileAt";
+  const commandsToOpenFiles = 'somanyconflicts-jj.openFileAt'
   const openFileHandler = async function (
     uri: vscode.Uri,
     range: vscode.Range,
   ) {
-    await vscode.commands.executeCommand("vscode.open", uri).then(() => {
-      const activeEditor = vscode.window.activeTextEditor;
+    await vscode.commands.executeCommand('vscode.open', uri).then(() => {
+      const activeEditor = vscode.window.activeTextEditor
       if (activeEditor) {
-        activeEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-        activeEditor.selection = new vscode.Selection(range.start, range.start);
+        activeEditor.revealRange(range, vscode.TextEditorRevealType.InCenter)
+        activeEditor.selection = new vscode.Selection(range.start, range.start)
       }
-    });
-  };
+    })
+  }
   context.subscriptions.push(
     vscode.commands.registerCommand(commandsToOpenFiles, openFileHandler),
-  );
+  )
 }
 
 function createTree(
@@ -565,12 +565,12 @@ function createTree(
   resolvedIconPath: string,
   conflictIconPath: string,
 ): [ConflictTreeItem[], ConflictTreeViewProvider] {
-  const treeRoot: ConflictTreeItem[] = [];
+  const treeRoot: ConflictTreeItem[] = []
   const treeViewProvider = new ConflictTreeViewProvider(
     treeRoot,
     resolvedIconPath,
     conflictIconPath,
-  );
-  vscode.window.registerTreeDataProvider(viewName, treeViewProvider);
-  return [treeRoot, treeViewProvider];
+  )
+  vscode.window.registerTreeDataProvider(viewName, treeViewProvider)
+  return [treeRoot, treeViewProvider]
 }
