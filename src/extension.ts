@@ -44,9 +44,9 @@ export function activate(context: vscode.ExtensionContext) {
   addSubcommandOpenFile(context)
 
   const [suggestedConflictTreeRoot, suggestedConflictTreeViewProvider] =
-    createTree('suggestedConflictTreeView', conflictIconPath, resolvedIconPath)
+    createTree('jjSuggestedConflictTreeView', conflictIconPath, resolvedIconPath)
   const [allConflictTreeRoot, allConflictTreeViewProvider] = createTree(
-    'allConflictTreeView',
+    'jjAllConflictTreeView',
     conflictIconPath,
     resolvedIconPath,
   )
@@ -242,7 +242,7 @@ export function activate(context: vscode.ExtensionContext) {
             allConflictTreeRoot,
           ).then(() => {
             allConflictTreeViewProvider.refresh()
-            vscode.commands.executeCommand('allConflictTreeView.focus')
+            vscode.commands.executeCommand('jjAllConflictTreeView.focus')
           })
         })
       }
@@ -274,7 +274,7 @@ export function activate(context: vscode.ExtensionContext) {
               suggestedConflictTreeRoot,
             ).then(() => {
               suggestedConflictTreeViewProvider.refresh()
-              vscode.commands.executeCommand('suggestedConflictTreeView.focus')
+              vscode.commands.executeCommand('jjSuggestedConflictTreeView.focus')
             })
           })
           progress.report({ increment: 100 })

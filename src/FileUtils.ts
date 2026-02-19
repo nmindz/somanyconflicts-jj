@@ -73,6 +73,12 @@ export class FileUtils {
       .split(/\r\n|\r|\n/)
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
+      .map((line) => {
+        // jj resolve --list format: "<filepath>    <N>-sided conflict"
+        // Extract just the file path (everything before the whitespace + description)
+        const match = line.match(/^(\S+)/)
+        return match ? match[1] : line
+      })
       .map((filePath) => path.join(directory, filePath))
 
     return filePaths
