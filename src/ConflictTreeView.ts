@@ -99,13 +99,27 @@ export async function conflictSectionsToTreeItem(
       )
     }
     const range = new vscode.Range(start, conflict.range.end)
-    const rawText = doc.getText(range).trimLeft()
-    const firstLine = rawText.split('\n')[0] || 'conflict'
+    const rawText = doc.getText(range)
+    // Skip JJ conflict markers and diff prefixes to find meaningful content
+    const meaningfulLine = rawText
+      .split('\n')
+      .map((l: string) => l.trim())
+      .find(
+        (l: string) =>
+          l.length > 0 &&
+          !l.startsWith('<<<<<<<') &&
+          !l.startsWith('>>>>>>>') &&
+          !l.startsWith('%%%%%%%') &&
+          !l.startsWith('+++++++') &&
+          !l.startsWith('\\\\\\') &&
+          l !== '+' &&
+          l !== '-',
+      ) || 'conflict'
+    // Strip diff prefixes (+/-/space) from the meaningful line
+    const cleaned = meaningfulLine.replace(/^[+\- ]/, '')
     const maxLen = 60
     const preview =
-      firstLine.length > maxLen
-        ? firstLine.substring(0, maxLen) + '...'
-        : firstLine
+      cleaned.length > maxLen ? cleaned.substring(0, maxLen) + '...' : cleaned
     const label = conflictSection.printLineRange() + '  ' + preview
     const newConflict = new ConflictTreeItem(
       label,
@@ -191,13 +205,29 @@ export async function suggestionsToTreeItem(
         )
       }
       const range = new vscode.Range(start, conflict.range.end)
-      const rawText = doc.getText(range).trimLeft()
-      const firstLine = rawText.split('\n')[0] || 'conflict'
+      const rawText = doc.getText(range)
+      // Skip JJ conflict markers and diff prefixes to find meaningful content
+      const meaningfulLine = rawText
+        .split('\n')
+        .map((l: string) => l.trim())
+        .find(
+          (l: string) =>
+            l.length > 0 &&
+            !l.startsWith('<<<<<<<') &&
+            !l.startsWith('>>>>>>>') &&
+            !l.startsWith('%%%%%%%') &&
+            !l.startsWith('+++++++') &&
+            !l.startsWith('\\\\\\') &&
+            l !== '+' &&
+            l !== '-',
+        ) || 'conflict'
+      // Strip diff prefixes (+/-/space) from the meaningful line
+      const cleaned = meaningfulLine.replace(/^[+\- ]/, '')
       const maxLen = 60
       const preview =
-        firstLine.length > maxLen
-          ? firstLine.substring(0, maxLen) + '...'
-          : firstLine
+        cleaned.length > maxLen
+          ? cleaned.substring(0, maxLen) + '...'
+          : cleaned
       const label = conflictSection.printLineRange() + '  ' + preview
       const newConflict = new ConflictTreeItem(
         label,

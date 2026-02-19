@@ -27,14 +27,20 @@ async function ensureTreeSitter(): Promise<typeof TreeSitter> {
         treeSitterReady = TreeSitterModule!.Parser.init({
           locateFile: (file: string) => path.join(__dirname, file),
         }).catch((err: any) => {
-          console.error('[somanyconflicts-jj] TreeSitter init failed:', err?.message || err)
+          console.error(
+            '[somanyconflicts-jj] TreeSitter init failed:',
+            err?.message || err,
+          )
           TreeSitterModule = null
           treeSitterReady = null
         })
       }
       await treeSitterReady
     } catch (err: any) {
-      console.error('[somanyconflicts-jj] Failed to load web-tree-sitter:', err?.message || err)
+      console.error(
+        '[somanyconflicts-jj] Failed to load web-tree-sitter:',
+        err?.message || err,
+      )
       TreeSitterModule = null
       treeSitterReady = null
       throw err
@@ -380,7 +386,9 @@ export class SoManyConflicts {
         )
       }
     } else {
-      vscode.window.showWarningMessage('No suggestion for this conflict.')
+      vscode.window.showInformationMessage(
+        'No suggestion yet — resolve a related conflict first to enable strategy propagation.',
+      )
     }
   }
 
