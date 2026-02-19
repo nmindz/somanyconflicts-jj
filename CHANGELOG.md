@@ -77,21 +77,21 @@ This release forks the original [So Many Conflicts](https://github.com/Symbolk/s
 
 The following changes were made by the original author [Bo Shen (@Symbolk)](https://github.com/Symbolk) in the upstream repository before this fork.
 
-### v0.1.3 - 2021-08-19
+#### Upstream v0.1.3 - 2021-08-19
 
 - Refined linking and sorting algorithm.
 - Critical fix for refresh logic.
 - Linted code and dependencies.
 
-### v0.1.2
+#### Upstream v0.1.2
 
 - Add refresh button in both views.
 
-### v0.1.1
+#### Upstream v0.1.1
 
 - Enable query to work normally via web-tree-sitter.
 
-### v0.1.0
+#### Upstream v0.1.0
 
 - Switch to WebAssembly for native module TreeSitter to cross platform.
 - Be more self-explainable with tips above buttons.

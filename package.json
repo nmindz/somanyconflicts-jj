@@ -73,16 +73,7 @@
     },
     "colors": [
       {
-        "id": "somanyconflicts.border_color",
-        "description": "Background color for suggested resolution",
-        "defaults": {
-          "dark": "#FFFF00",
-          "light": "#FF4500",
-          "highContrast": "#FF000055"
-        }
-      },
-      {
-        "id": "somanyconflicts.background_color",
+        "id": "somanyconflicts-jj.background_color",
         "description": "Background color for suggested resolution",
         "defaults": {
           "dark": "#006400",
