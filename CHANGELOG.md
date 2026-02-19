@@ -19,14 +19,16 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - **Extension activation failure**: `web-tree-sitter` is now lazy-loaded (was eagerly imported at module scope, causing silent crash before `activate()` ran).
 - **Tree-sitter query errors**: Fixed `new_expression` patterns in JavaScript and TypeScript queries for compatibility with tree-sitter grammar v0.25+.
 - **Double newline on accept**: Content lines already include `\n` terminators — join with empty string instead of `\n`.
+- **Tree view labels**: Skip JJ conflict markers (`%%%%%%%`, `+++++++`, etc.) and show first meaningful content line.
 
 ### Improved
 
 - **Group labels**: Tree view groups now show file names (e.g., "utils.ts, config.ts (3 conflicts)") instead of generic "Group1", "Group2".
 - **Conflict labels**: Tree view items show a clean first-line preview (truncated to 60 chars) instead of raw conflict marker text.
+- **Strategy message**: Clarified "No suggestion" to explain strategy propagation requirement.
 - Build pipeline: `compile` now runs `tsc --noEmit` + esbuild. `watch` runs both in parallel.
 
-## [v1.0.0-jj] - 2026-02-18
+## [v0.0.1] - 2026-02-18
 
 ### Fork: Adapted for Jujutsu (JJ)
 
@@ -58,6 +60,8 @@ This release forks the original [So Many Conflicts](https://github.com/Symbolk/s
 - `FileUtils`: replaced `simple-git` with `jj resolve --list` + file scanning fallback.
 - All user-facing messages: "merge conflicts" → "JJ conflicts".
 - Fixed typo "Reamining" → "Remaining".
+- Package manager: Yarn → pnpm.
+- Tree-sitter toolchain: 0.19 → 0.26 (web-tree-sitter, tree-sitter-cli, all grammars).
 
 #### Removed
 
@@ -65,24 +69,29 @@ This release forks the original [So Many Conflicts](https://github.com/Symbolk/s
 - Git-specific conflict markers (`|||||||`, `=======`).
 - Fixed `ours`/`base`/`theirs` properties from `Conflict`.
 - Fixed `AcceptOurs`/`AcceptTheirs`/`AcceptBase`/`AcceptBoth` from `Strategy`.
+- `tree-sitter` native binding (replaced by web-tree-sitter WASM only).
 
 ---
 
-## [v0.1.3] - 2021-08-19
+## [v0.0.0] (fork) — Inherited from [So Many Conflicts](https://github.com/Symbolk/somanyconflicts)
+
+The following changes were made by the original author [Bo Shen (@Symbolk)](https://github.com/Symbolk) in the upstream repository before this fork.
+
+### v0.1.3 - 2021-08-19
 
 - Refined linking and sorting algorithm.
 - Critical fix for refresh logic.
 - Linted code and dependencies.
 
-## [v0.1.2]
+### v0.1.2
 
 - Add refresh button in both views.
 
-## [v0.1.1]
+### v0.1.1
 
 - Enable query to work normally via web-tree-sitter.
 
-## [v0.1.0]
+### v0.1.0
 
 - Switch to WebAssembly for native module TreeSitter to cross platform.
 - Be more self-explainable with tips above buttons.
