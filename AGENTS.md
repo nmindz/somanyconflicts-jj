@@ -10,16 +10,16 @@ Fork of [So Many Conflicts](https://github.com/Symbolk/somanyconflicts) by Bo Sh
 
 ```bash
 # Install dependencies (postinstall builds tree-sitter WASM parsers)
-yarn install
+pnpm install
 
 # Compile TypeScript → out/
-yarn compile
+pnpm run compile
 
 # Run ESLint
-yarn lint
+pnpm run lint
 
 # Run test suite
-yarn test
+pnpm run test
 
 # Package as VSIX for distribution
 npx @vscode/vsce package
@@ -29,7 +29,7 @@ To debug: Press **F5** in VSCode to launch the Extension Development Host.
 
 ## Running Single Test
 
-N/A — Tests run as a suite via `yarn test` (Mocha + vscode-test).
+N/A — Tests run as a suite via `pnpm run test` (Mocha + vscode-test).
 
 ## Code Style Guidelines
 

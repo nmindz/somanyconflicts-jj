@@ -101,10 +101,9 @@ _Not yet published. Coming soon._
 
 ### Prerequisites
 
-- **Node.js** ≥ 14.16.0
-- **Yarn** ≥ 1.16.0
-- **Python** ≥ 3.7.0 (required by tree-sitter native module build)
-- **Emscripten** (optional — only needed if you want to rebuild the WASM parsers from scratch; pre-built `.wasm` files are included in `parsers/`)
+- **Node.js** ≥ 18.0.0
+- **pnpm** ≥ 8.0.0
+- **wasi-sdk** (optional — auto-downloaded by tree-sitter-cli on first WASM build if not present)
 
 ### Steps
 
@@ -114,10 +113,10 @@ git clone https://github.com/nmindz/somanyconflicts-jj.git
 cd somanyconflicts-jj
 
 # Install dependencies (postinstall builds tree-sitter WASM parsers)
-yarn install
+pnpm install
 
 # Compile TypeScript to JavaScript
-yarn compile
+pnpm run compile
 
 # Launch Extension Development Host in VSCode
 # Press F5 (or use the "Run Extension" launch config)
@@ -125,13 +124,13 @@ yarn compile
 
 ### Available Scripts
 
-| Command                  | Description                       |
-| ------------------------ | --------------------------------- |
-| `yarn compile`           | Compile TypeScript → `out/`       |
-| `yarn watch`             | Watch mode — recompile on changes |
-| `yarn lint`              | Run ESLint on `src/**/*.ts`       |
-| `yarn test`              | Run the test suite                |
-| `yarn vscode:prepublish` | Compile for publishing            |
+| Command                      | Description                       |
+| ---------------------------- | --------------------------------- |
+| `pnpm run compile`           | Compile TypeScript → `out/`       |
+| `pnpm run watch`             | Watch mode — recompile on changes |
+| `pnpm run lint`              | Run ESLint on `src/**/*.ts`       |
+| `pnpm run test`              | Run the test suite                |
+| `pnpm run vscode:prepublish` | Compile for publishing            |
 
 ### Package as VSIX
 

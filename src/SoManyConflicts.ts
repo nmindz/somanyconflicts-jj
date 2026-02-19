@@ -15,11 +15,14 @@ import { TextSection } from './TextSection'
 import { StringUtils } from './StringUtils'
 const graphlib = require('@dagrejs/graphlib')
 
-const treeSitterPromise = TreeSitter.init()
+const treeSitterPromise = TreeSitter.Parser.init()
 
 export class SoManyConflicts {
   /** singleton treesitter instances for different languages */
-  private static queriers = new Map<Language, [TreeSitter, TreeSitter.Query]>()
+  private static queriers = new Map<
+    Language,
+    [TreeSitter.Parser, TreeSitter.Query]
+  >()
 
   public static parseFile(absPath: string, content?: string): ISection[] {
     if (!content) {
@@ -120,7 +123,8 @@ export class SoManyConflicts {
 
     if (instance) {
       try {
-        const tree: TreeSitter.Tree = instance[0].parse(codeLines.join('\n'))
+        const tree = instance[0].parse(codeLines.join('\n'))
+        if (!tree) return identifiers
         const matches: TreeSitter.QueryMatch[] = instance[1].matches(
           tree.rootNode,
         )
@@ -145,7 +149,7 @@ export class SoManyConflicts {
 
   private static async initParser(language: Language, queryString: string) {
     await treeSitterPromise
-    const parser = new TreeSitter()
+    const parser = new TreeSitter.Parser()
 
     const langFile = path.join(
       __dirname,
@@ -154,7 +158,7 @@ export class SoManyConflicts {
     )
     const langObj = await TreeSitter.Language.load(langFile)
     parser.setLanguage(langObj)
-    const query = langObj.query(queryString)
+    const query = new TreeSitter.Query(langObj, queryString)
     this.queriers.set(language, [parser, query])
   }
 

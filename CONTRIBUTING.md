@@ -6,12 +6,11 @@ Thank you for your interest in contributing! This project is a fork of [So Many 
 
 ### Prerequisites
 
-- **Node.js** ≥ 14.16.0
-- **Yarn** ≥ 1.16.0
-- **Python** ≥ 3.7.0 (required by tree-sitter native module build)
+- **Node.js** ≥ 18.0.0
+- **pnpm** ≥ 8.0.0
 - **VSCode** (latest stable recommended)
 - **Jujutsu (jj)** installed and on PATH (for testing with real conflicts)
-- **Emscripten** (optional — only needed if rebuilding WASM parsers from scratch)
+- **wasi-sdk** (optional — auto-downloaded by tree-sitter-cli if not present; set `TREE_SITTER_WASI_SDK_PATH` to override)
 
 ### Getting Started
 
@@ -21,10 +20,10 @@ git clone https://github.com/nmindz/somanyconflicts-jj.git
 cd somanyconflicts-jj
 
 # Install dependencies (postinstall builds tree-sitter WASM parsers)
-yarn install
+pnpm install
 
 # Compile TypeScript
-yarn compile
+pnpm run compile
 ```
 
 ## Running & Debugging
@@ -39,17 +38,17 @@ yarn compile
 For continuous compilation during development:
 
 ```bash
-yarn watch
+pnpm run watch
 ```
 
 ## Running Tests
 
 ```bash
 # Run the full test suite
-yarn test
+pnpm run test
 
 # Run linting
-yarn lint
+pnpm run lint
 ```
 
 Tests use Mocha + vscode-test and run in a VSCode instance.
@@ -57,7 +56,7 @@ Tests use Mocha + vscode-test and run in a VSCode instance.
 ## Code Style
 
 - **TypeScript strict mode** — `tsconfig.json` enforces strict checks
-- **ESLint** — Run `yarn lint` before submitting; standard config with `@typescript-eslint`
+- **ESLint** — Run `pnpm run lint` before submitting; standard config with `@typescript-eslint`
 - **No semicolons** — enforced by eslint standard config
 - **Trailing commas** in multiline expressions
 - **No Git dependencies** — all VCS interaction uses `jj` CLI via `child_process`, never `simple-git` or any Git library
@@ -77,9 +76,9 @@ Understanding these core concepts will help you contribute:
 1. **Fork** the repository and create a feature branch from `main`.
 2. **Make your changes** following the code style guidelines above.
 3. **Ensure quality**:
-   - `yarn lint` passes with no errors
-   - `yarn compile` succeeds with no TypeScript errors
-   - `yarn test` passes (if tests exist for the changed area)
+   - `pnpm run lint` passes with no errors
+   - `pnpm run compile` succeeds with no TypeScript errors
+   - `pnpm run test` passes (if tests exist for the changed area)
 4. **Update documentation**:
    - Update `CHANGELOG.md` for new features or breaking changes
    - Update `README.md` if user-facing behavior changes
