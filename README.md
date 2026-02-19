@@ -1,137 +1,154 @@
 <div align="center">
-  <a href="" target="_blank">
+  <a href="https://github.com/nmindz/somanyconflicts-jj" target="_blank">
     <img width="160" src="/media/logo.png" alt="logo">
   </a>
-  <h1 id="somanyconflicts"><a href="https://github.com/Symbolk/somanyconflicts/" target="repo">So Many Conflicts</a></h1>
-
+  <h1 id="somanyconflicts-jj"><a href="https://github.com/nmindz/somanyconflicts-jj" target="repo">So Many Conflicts (JJ)</a></h1>
 </div>
 
-**A VSCode extension to help developers resolve so many merge conflicts interactively and systematically, to lighten this tedious work and avoid making mistakes**.
+**A VSCode extension to help developers resolve Jujutsu (JJ) conflicts interactively and systematically — group related conflicts, suggest resolution order and strategy.**
+
+Adapted from the original [So Many Conflicts](https://github.com/Symbolk/somanyconflicts) extension by [Bo Shen (@Symbolk)](https://github.com/Symbolk) for the [Jujutsu](https://jj-vcs.github.io/jj/) version control system.
 
 ![screen](/media/screenshot.png?raw=true "screen")
 
+## JJ Conflict Format
+
+Unlike Git's 3-way merge markers, JJ uses an N-way conflict format with **diff sections** and **literal sections**:
+
+```
+<<<<<<< Conflict 1 of N
+%%%%%%% diff description
+\\\\\\\        to: side #1
++added line (added by this side)
+-removed line (removed by this side)
+ context line (unchanged)
++++++++ side #2
+literal content of side 2
+(raw lines, no prefix)
+>>>>>>> Conflict 1 of N ends
+```
+
+**Key differences from Git:**
+
+- `<<<<<<<` — suffix is `Conflict X of Y` (numbered)
+- `%%%%%%%` — introduces a **diff section** (changes from base to side)
+- `\\\\\\\` — optional description line after `%%%%%%%`
+- `+++++++` — introduces a **literal content** section
+- `>>>>>>>` — suffix includes `ends`
+- **N-way conflicts**: can have multiple `%%%%%%%` and `+++++++` sections
 
 ## Features
 
-- Group *related* merge conflicts and order them topologically, *related* means: *depending/depended*, *similar*, or *close*.
-- Interactively suggest the next related conflict to resolve by the way.
+- Group _related_ JJ conflicts and order them topologically — _related_ means: _depending/depended_, _similar_, or _close_.
+- Interactively suggest the next related conflict to resolve.
 - Suggest resolution strategy based on already resolved relevant conflicts.
+- Full N-way conflict support — parse arbitrary numbers of diff and literal sections.
+- Configurable naming: JJ-native ("Side 1", "Side 2") or Git-friendly ("Current", "Incoming").
 
 ## Language Support
 
 - Java
 - TypeScript
-- JavaScript (testing)
-- Python (doing)
+- JavaScript
+- Python
 
 ## Requirements
 
-- OS: macOS/Linux/Windows
+- OS: macOS / Linux / Windows
 - VSCode: ^1.45.0
-  
+- [Jujutsu (jj)](https://jj-vcs.github.io/jj/) installed and on PATH (for `jj resolve --list`)
+
 ## Installation
 
-- Install from marketplace: search&install `SoManyConflict` in the VSCode extension marketplace.
-- Install from vsix: build&download the installation package `.vsix` (see following), and run `Extension: Install from VSIX...` in VSCode extension sidebar.
-  
-[release]: https://github.com/Symbolk/somanyconflicts/releases
+### From VSIX (Local Build)
+
+1. Build the extension package:
+
+   ```bash
+   npx @vscode/vsce package
+   ```
+
+   This produces a `.vsix` file (e.g., `somanyconflicts-jj-1.0.0-jj.vsix`).
+
+2. In VSCode, open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and run:
+
+   ```
+   Extensions: Install from VSIX...
+   ```
+
+3. Select the generated `.vsix` file.
+
+### From Marketplace
+
+_Not yet published. Coming soon._
 
 ## Quick Start
 
-1. Open a Git repository with unresolved merge conflicts in VSCode.
-2. Click the button in the side bar, or invoke by command starting with `somany`.
+1. Open a JJ repository with unresolved conflicts in VSCode.
+2. Click the merge icon in the Activity Bar, or invoke commands starting with `somany` from the Command Palette.
 3. Start resolving by starting from the grouped and ordered related conflicts.
-4. Navigate and jump to related conflict blocks to resolve by the way.
-5. After all conflicts resolved, go on committing the changes.
+4. Navigate and jump to related conflict blocks to resolve along the way.
+5. After all conflicts are resolved, run `jj resolve` to finalize.
 
-## Develop
-### Requirements
+## Configuration
 
-#### Under macOS/Linux (Recommended)
-- VSCode ~1.56.0
-- Node.JS ^14.16.0
-- Python ^3.7.0
-- xcode-select ~2373
-- Yarn ^1.16.0
-#### Under Windows
-- VSCode ~1.56.0
-- Node.JS ^14.16.0
-- Python ^3.7.0
-- Visual Studio Build Tools 2017
-- Yarn ^1.16.0
+| Setting                               | Values                      | Default     | Description                                                                                                           |
+| ------------------------------------- | --------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| `somanyconflicts-jj.namingConvention` | `jj-native`, `git-friendly` | `jj-native` | How conflict sides are named. JJ-native uses "Side 1", "Side 2". Git-friendly uses "Current"/"Incoming" (2-way only). |
+| `somanyconflicts-jj.scanMode`         | `jj-cli`, `file-scan`       | `jj-cli`    | How to discover conflicting files. `jj-cli` runs `jj resolve --list`. `file-scan` scans all files for JJ markers.     |
 
-### Instructions
+## Build from Source
 
-#### Under macOS (Recommended)
-1. Install XCode command line tools:
-```sh
-xcode-select --install
-```
-2. Clone repo and open in VSCode.
-3. Open the terminal, install Emscripten (the compiler toolchain to WebAssembly): https://emscripten.org/docs/getting_started/downloads.html#sdk-download-and-install
-4. In the same terminal and under the project root, run `yarn` or `npm i` to download dependencies.
-5. Press `F5` to run and debug extension.
-6. In the new window, press `F1` or `Cmd+Shift+P` and invoke command `somany`.
+### Prerequisites
 
-> Trick: When debugging, install the extension `Auto Run Command` and configure it in `Code-Preferences-Settings`, you can avoid manually invoke the command:
+- **Node.js** ≥ 14.16.0
+- **Yarn** ≥ 1.16.0
+- **Python** ≥ 3.7.0 (required by tree-sitter native module build)
+- **Emscripten** (optional — only needed if you want to rebuild the WASM parsers from scratch; pre-built `.wasm` files are included in `parsers/`)
 
-```json
-  "auto-run-command.rules": [
-    {
-      "condition": "isRootFolder: XXX",
-      "command": "somanyconflicts.start",
-      "message": "Running So Many Conflicts"
-    }
-  ],
+### Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/nmindz/somanyconflicts-jj.git
+cd somanyconflicts-jj
+
+# Install dependencies (postinstall builds tree-sitter WASM parsers)
+yarn install
+
+# Compile TypeScript to JavaScript
+yarn compile
+
+# Launch Extension Development Host in VSCode
+# Press F5 (or use the "Run Extension" launch config)
 ```
 
-#### Under Windows
-1. Install [windows-build-tools]:
-```
-npm install --global windows-build-tools
-```
-[windows-build-tools]: https://www.npmjs.com/package/windows-build-tools
+### Available Scripts
 
-2. Clone repo and open in VSCode.
-3. Open the terminal, install Emscripten (the compiler toolchain to WebAssembly): https://emscripten.org/docs/getting_started/downloads.html#sdk-download-and-install
-4. In the same terminal and under the project root, run `yarn` or `npm i` to download dependencies.
-5. Press `F5` to run and debug extension.
-6. In the new window, press `F1` or `Ctrl+Shift+P` and invoke command `somany`.
+| Command                  | Description                       |
+| ------------------------ | --------------------------------- |
+| `yarn compile`           | Compile TypeScript → `out/`       |
+| `yarn watch`             | Watch mode — recompile on changes |
+| `yarn lint`              | Run ESLint on `src/**/*.ts`       |
+| `yarn test`              | Run the test suite                |
+| `yarn vscode:prepublish` | Compile for publishing            |
 
+### Package as VSIX
 
-## Known Issues
-
-1. If you find that electron takes too much time to install when running `yarn`, stop it with `Command+C` and remove `"electron": "13.1.7"` from `package.json` first, then run the following command to install modules:
-
-```sh
-yarn
-ELECTRON_MIRROR=https://npm.taobao.org/mirrors/electron/ yarn add -D electron@13.1.7
+```bash
+npx @vscode/vsce package
 ```
 
-2. [Deprecated] Treesitter is a native module that must be rebuilt locally after installed to match the electron node version of VSCode (see [electron-rebuild]). However, directly running rebuild will result in an error about C++ version. There is an unmerged [PR] and a related [issue] for [node-tree-sitter], for now you need to follow these steps to successfully rebuild it:
+This generates a `.vsix` file you can install locally or distribute.
 
-[electron-rebuild]: https://www.electronjs.org/docs/tutorial/using-native-node-modules
-[node-tree-sitter]: https://github.com/tree-sitter/node-tree-sitter/
-[PR]: https://github.com/tree-sitter/node-tree-sitter/pull/83
-[issue]: https://github.com/tree-sitter/node-tree-sitter/issues/82
+## Attribution
 
-- Edit `node_modules/tree-sitter/binding.gyp`:
+This project is a fork of [So Many Conflicts](https://github.com/Symbolk/somanyconflicts), adapted for the Jujutsu version control system.
 
-```diff
-     'xcode_settings': {
--       'CLANG_CXX_LANGUAGE_STANDARD': 'c++11',
-+       'CLANG_CXX_LANGUAGE_STANDARD': 'c++14',
-     },
-```
+- **Original author**: [Bo Shen (@Symbolk)](https://github.com/Symbolk) — created the original So Many Conflicts extension under the MIT License.
+- **Conflict parsing**: Originally inspired by [Conflict Squeezer](https://github.com/angelo-mollame/conflict-squeezer) by [Angelo Mollame (@angelo-mollame)](https://github.com/angelo-mollame).
+- **JJ adaptation**: [Evandro Camargo (@nmindz)](https://github.com/nmindz) — adapted the extension for Jujutsu (JJ), including full N-way conflict support, JJ CLI integration, and the new parser state machine.
 
-- Rebuild it with:
+## License
 
-```sh
-./node_modules/.bin/electron-rebuild
-```
-
-> Note that, unfortunately, each time you run yarn, you need to rebuild treesitter as above :-(
-
-> Conflicts parsing part is borrowed from [Conflict Squeezer], thanks for the nice work!
-
-[Conflict Squeezer]: https://github.com/angelo-mollame/conflict-squeezer
+MIT — see [LICENSE](./LICENSE).

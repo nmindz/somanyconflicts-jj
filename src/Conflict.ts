@@ -1,214 +1,265 @@
-import { Uri, Position, Range } from 'vscode'
-import { ConflictSide } from './ConflictSide'
-import { Constants } from './Constants'
-import { Symbol } from './Symbol'
+import { Uri, Position, Range } from "vscode";
+import { ConflictSide } from "./ConflictSide";
+import { Constants } from "./Constants";
+import { Symbol } from "./Symbol";
 
 export class Conflict {
-  public uri: Uri | undefined = undefined
-  public hasBase: boolean = false
+  public uri: Uri | undefined = undefined;
+  public range: Range = new Range(new Position(0, 0), new Position(0, 0));
 
-  private textAfterMarkerOurs: string | undefined = undefined
-  private textAfterMarkerBase: string | undefined = undefined
-  private textAfterMarkerTheirs: string | undefined = undefined
-  private textAfterMarkerEnd: string | undefined = undefined
+  private _sides: ConflictSide[] = [];
+  private _conflictNumber: number = 0;
+  private _totalConflicts: number = 0;
+  private _textAfterMarkerStart: string = "";
+  private _textAfterMarkerEnd: string = "";
 
-  public range: Range = new Range(new Position(0, 0), new Position(0, 0))
-  private _ours: ConflictSide = new ConflictSide()
-  public get ours(): ConflictSide {
-    return this._ours
+  public get sides(): ConflictSide[] {
+    return this._sides;
   }
 
-  private _base: ConflictSide = new ConflictSide()
-  public get base(): ConflictSide {
-    return this._base
+  public get sideCount(): number {
+    return this._sides.length;
   }
 
-  private _theirs: ConflictSide = new ConflictSide()
-  public get theirs(): ConflictSide {
-    return this._theirs
+  public get conflictNumber(): number {
+    return this._conflictNumber;
   }
 
+  public set conflictNumber(value: number) {
+    this._conflictNumber = value;
+  }
+
+  public get totalConflicts(): number {
+    return this._totalConflicts;
+  }
+
+  public set totalConflicts(value: number) {
+    this._totalConflicts = value;
+  }
+
+  public get textAfterMarkerStart(): string {
+    return this._textAfterMarkerStart;
+  }
+
+  public set textAfterMarkerStart(value: string) {
+    this._textAfterMarkerStart = value;
+  }
+
+  public get textAfterMarkerEnd(): string {
+    return this._textAfterMarkerEnd;
+  }
+
+  public set textAfterMarkerEnd(value: string) {
+    this._textAfterMarkerEnd = value;
+  }
+
+  public addSide(side: ConflictSide): void {
+    this._sides.push(side);
+  }
+
+  public getSide(index: number): ConflictSide {
+    if (index < 0 || index >= this._sides.length) {
+      throw new Error(
+        `Side index ${index} out of bounds (${this._sides.length} sides)`,
+      );
+    }
+    return this._sides[index];
+  }
+
+  /**
+   * Get the content lines for a specific side.
+   * For diff sides, this returns the resolved content.
+   * For literal sides, this returns the raw lines.
+   */
+  public getSideContent(index: number): string[] {
+    return this.getSide(index).getContentLines();
+  }
+
+  /**
+   * Get base content from the first diff side (if any).
+   * Returns undefined if no diff sides exist.
+   */
+  public getBaseContent(): string[] | undefined {
+    for (const side of this._sides) {
+      if (side.type === "diff") {
+        return side.getBaseLines();
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Add a symbol to a specific side.
+   */
+  public addSideSymbol(sideIndex: number, symbol: Symbol): void {
+    if (sideIndex >= 0 && sideIndex < this._sides.length) {
+      this._sides[sideIndex].symbols.push(symbol);
+    }
+  }
+
+  /**
+   * Reconstruct the squeezed text for an N-way conflict.
+   * For a 2-way conflict, attempts to squeeze identical top/bottom lines.
+   * For N-way, reconstructs the full conflict with JJ markers.
+   */
   public getSqueezedText(): string {
-    const minNumberOfLines: number = Math.min(
-      this._ours.lines.length,
-      this._theirs.lines.length,
-    )
-    const maxNumberOfLines: number = Math.max(
-      this._ours.lines.length,
-      this._theirs.lines.length,
-    )
-
-    // Top cursor will contain the number of identical lines from the top.
-    // Bottom cursor will contain the number of identical lines from the bottom.
-    let topCursor: number = 0
-    let bottomCursor: number = 0
-
-    while (topCursor < minNumberOfLines) {
-      const ourLine: string = this._ours.lines[topCursor]
-      const theirLine: string = this._theirs.lines[topCursor]
-
-      if (ourLine === theirLine) {
-        topCursor++
-      } else {
-        break
-      }
+    if (this._sides.length === 0) {
+      return "";
     }
 
-    // We need to subtract topCursor, to ensure that topCursor + bottomCursor <= minNumberOfLines
-    while (bottomCursor < minNumberOfLines - topCursor) {
-      const ourLine: string =
-        this._ours.lines[this._ours.lines.length - 1 - bottomCursor]
-      const theirLine: string =
-        this._theirs.lines[this._theirs.lines.length - 1 - bottomCursor]
+    // Get content lines for all sides
+    const sideContents = this._sides.map((s) => s.getContentLines());
 
-      if (ourLine === theirLine) {
-        bottomCursor++
-      } else {
-        break
-      }
-    }
+    if (this._sides.length === 2) {
+      // For 2-way conflicts, attempt to squeeze identical lines from top/bottom
+      const side0Lines = sideContents[0];
+      const side1Lines = sideContents[1];
+      const minLines = Math.min(side0Lines.length, side1Lines.length);
+      const maxLines = Math.max(side0Lines.length, side1Lines.length);
 
-    const identicalTopLines: string[] = this._ours.lines.slice(0, topCursor)
+      let topCursor = 0;
+      let bottomCursor = 0;
 
-    const identicalBottomLines: string[] = this._ours.lines.slice(
-      this._ours.lines.length - bottomCursor,
-      this._ours.lines.length,
-    )
-
-    let parts: string[]
-
-    if (topCursor + bottomCursor === maxNumberOfLines) {
-      parts = [...identicalTopLines, ...identicalBottomLines]
-    } else {
-      const ourNonIdenticalLines: string[] = this._ours.lines.slice(
-        topCursor,
-        this._ours.lines.length - bottomCursor,
-      )
-
-      const theirNonIdenticalLines: string[] = this._theirs.lines.slice(
-        topCursor,
-        this._theirs.lines.length - bottomCursor,
-      )
-
-      let baseParts: string[]
-
-      if (this.hasBase) {
-        baseParts = [
-          Constants.conflictMarkerBase + this.textAfterMarkerBase,
-          ...this._base.lines,
-        ]
-      } else {
-        baseParts = []
+      while (topCursor < minLines) {
+        if (side0Lines[topCursor] === side1Lines[topCursor]) {
+          topCursor++;
+        } else {
+          break;
+        }
       }
 
-      parts = [
-        ...identicalTopLines,
-        Constants.conflictMarkerOurs + this.textAfterMarkerOurs,
-        ...ourNonIdenticalLines,
-        ...baseParts,
-        Constants.conflictMarkerTheirs + this.textAfterMarkerTheirs,
-        ...theirNonIdenticalLines,
-        Constants.conflictMarkerEnd + this.textAfterMarkerEnd,
-        ...identicalBottomLines,
-      ]
+      while (bottomCursor < minLines - topCursor) {
+        if (
+          side0Lines[side0Lines.length - 1 - bottomCursor] ===
+          side1Lines[side1Lines.length - 1 - bottomCursor]
+        ) {
+          bottomCursor++;
+        } else {
+          break;
+        }
+      }
+
+      const identicalTopLines = side0Lines.slice(0, topCursor);
+      const identicalBottomLines = side0Lines.slice(
+        side0Lines.length - bottomCursor,
+        side0Lines.length,
+      );
+
+      if (topCursor + bottomCursor === maxLines) {
+        return [...identicalTopLines, ...identicalBottomLines]
+          .filter((part) => part.length > 0)
+          .join("");
+      }
+
+      // Build squeezed conflict
+      const parts: string[] = [];
+      parts.push(...identicalTopLines);
+
+      // Re-emit conflict markers with remaining unique lines
+      parts.push(Constants.conflictMarkerStart + this._textAfterMarkerStart);
+      for (let i = 0; i < this._sides.length; i++) {
+        const side = this._sides[i];
+        if (side.type === "diff") {
+          parts.push(
+            Constants.conflictMarkerDiff +
+              (side.description ? " " + side.description : ""),
+          );
+          if (side.hasDiffDescription) {
+            parts.push(Constants.conflictMarkerDiffDesc);
+          }
+          const uniqueLines = side.lines.slice(
+            topCursor,
+            side.lines.length - bottomCursor,
+          );
+          parts.push(...uniqueLines);
+        } else {
+          parts.push(
+            Constants.conflictMarkerLiteral +
+              (side.description ? " " + side.description : ""),
+          );
+          const uniqueLines = sideContents[i].slice(
+            topCursor,
+            sideContents[i].length - bottomCursor,
+          );
+          parts.push(...uniqueLines);
+        }
+      }
+      parts.push(Constants.conflictMarkerEnd + this._textAfterMarkerEnd);
+      parts.push(...identicalBottomLines);
+
+      return parts.filter((part) => part.length > 0).join("");
     }
 
-    return parts.filter((part) => part.length > 0).join('')
+    // For N-way conflicts (N > 2), just reconstruct without squeezing
+    const parts: string[] = [];
+    parts.push(Constants.conflictMarkerStart + this._textAfterMarkerStart);
+    for (const side of this._sides) {
+      if (side.type === "diff") {
+        parts.push(
+          Constants.conflictMarkerDiff +
+            (side.description ? " " + side.description : ""),
+        );
+        if (side.hasDiffDescription) {
+          parts.push(Constants.conflictMarkerDiffDesc);
+        }
+        parts.push(...side.lines);
+      } else {
+        parts.push(
+          Constants.conflictMarkerLiteral +
+            (side.description ? " " + side.description : ""),
+        );
+        parts.push(...side.lines);
+      }
+    }
+    parts.push(Constants.conflictMarkerEnd + this._textAfterMarkerEnd);
+    return parts.filter((part) => part.length > 0).join("");
   }
 
-  public addBaseLine(line: string): void {
-    this._base.lines.push(line)
-  }
-
-  public addOurLine(line: string): void {
-    this._ours.lines.push(line)
-  }
-
-  public addTheirLine(line: string): void {
-    this._theirs.lines.push(line)
-  }
-
-  public setTextAfterMarkerEnd(text: string): void {
-    this.textAfterMarkerEnd = text
-  }
-
-  public setTextAfterMarkerBase(text: string): void {
-    this.textAfterMarkerBase = text
-  }
-
-  public setTextAfterMarkerOurs(text: string): void {
-    this.textAfterMarkerOurs = text
-  }
-
-  public setTextAfterMarkerTheirs(text: string): void {
-    this.textAfterMarkerTheirs = text
-  }
-
-  public addOurIdentifier(identifier: Symbol): void {
-    this._ours.symbols.push(identifier)
-  }
-
-  public addBaseIdentifier(identifier: Symbol): void {
-    this._base.symbols.push(identifier)
-  }
-
-  public addTheirIdentifier(identifier: Symbol): void {
-    this._theirs.symbols.push(identifier)
-  }
-
+  /**
+   * Compute ranges for N sides with variable marker lines.
+   * Each side occupies its content lines between markers.
+   */
   public computeRanges(startLine: number, endLine: number) {
-    // line numbers start from 0, and do not include conflict markers
-    const oursEndLine = startLine + 1 + this._ours.lines.length - 1
-    this._ours.range = new Range(
-      new Position(startLine + 1, 0),
-      new Position(
-        oursEndLine,
-        this._ours.lines.length > 0
-          ? this._ours.lines[this._ours.lines.length - 1].length - 1
-          : 0,
-      ),
-    )
-    if (this.hasBase) {
-      const orgEndLine = oursEndLine + 1 + this._base.lines.length
-      this._base.range = new Range(
-        new Position(oursEndLine + 2, 0),
-        new Position(
-          orgEndLine,
-          this._base.lines.length > 0
-            ? this._base.lines[this._base.lines.length - 1].length - 1
-            : 0,
-        ),
-      )
-      this._theirs.range = new Range(
-        new Position(orgEndLine + 2, 0),
-        new Position(
-          endLine - 1,
-          this._theirs.lines.length > 0
-            ? this._theirs.lines[this._theirs.lines.length - 1].length - 1
-            : 0,
-        ),
-      )
-    } else {
-      this._theirs.range = new Range(
-        new Position(oursEndLine + 2, 0),
-        new Position(
-          endLine - 1,
-          this._theirs.lines.length > 0
-            ? this._theirs.lines[this._theirs.lines.length - 1].length - 1
-            : 0,
-        ),
-      )
+    // Track the current line as we step through markers and side content
+    let currentLine = startLine + 1; // skip the <<<<<<< line
+
+    for (const side of this._sides) {
+      // Skip the marker line (%%%%%%%/+++++++), and optional \\\\\\\ line
+      currentLine++; // marker line (%%%%%%%/+++++++)
+      if (side.type === "diff" && side.hasDiffDescription) {
+        currentLine++; // \\\\\\\ description line
+      }
+
+      const sideStartLine = currentLine;
+      const sideEndLine = sideStartLine + side.getContentLines().length - 1;
+
+      if (side.getContentLines().length > 0) {
+        side.range = new Range(
+          new Position(sideStartLine, 0),
+          new Position(
+            sideEndLine,
+            side.getContentLines()[side.getContentLines().length - 1].length -
+              1,
+          ),
+        );
+      } else {
+        side.range = new Range(
+          new Position(sideStartLine, 0),
+          new Position(sideStartLine, 0),
+        );
+      }
+
+      // For diff sides, the raw diff lines may differ in count from resolved lines
+      // We advance by the raw line count (what's actually in the file)
+      currentLine += side.lines.length;
     }
 
     this.range = new Range(
       new Position(startLine, 0),
       new Position(
         endLine,
-        Constants.conflictMarkerEnd.length +
-          (this.textAfterMarkerEnd === undefined
-            ? 0
-            : this.textAfterMarkerEnd.length),
+        Constants.conflictMarkerEnd.length + this._textAfterMarkerEnd.length,
       ),
-    )
+    );
   }
 }

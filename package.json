@@ -1,15 +1,27 @@
 {
-  "name": "somanyconflicts",
-  "displayName": "So Many Conflicts",
-  "description": "No more headache on multiple conflicts after merging!",
-  "version": "0.1.3",
+  "name": "somanyconflicts-jj",
+  "displayName": "So Many Conflicts (JJ)",
+  "description": "Resolve Jujutsu (JJ) conflicts interactively — group related conflicts, suggest resolution order and strategy.",
+  "version": "1.0.0-jj",
   "preview": true,
   "icon": "media/logo.png",
-  "publisher": "Symbolk",
+  "publisher": "nmindz",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Symbolk/somanyconflicts"
+    "url": "https://github.com/nmindz/somanyconflicts-jj"
   },
+  "homepage": "https://github.com/nmindz/somanyconflicts-jj",
+  "license": "MIT",
+  "author": {
+    "name": "Evandro Camargo",
+    "url": "https://github.com/nmindz"
+  },
+  "contributors": [
+    {
+      "name": "Bo Shen (Symbolk)",
+      "url": "https://github.com/Symbolk"
+    }
+  ],
   "engines": {
     "vscode": "^1.45.0"
   },
@@ -18,23 +30,46 @@
     "Other"
   ],
   "keywords": [
-    "git",
-    "branch",
-    "merge",
+    "jj",
+    "jujutsu",
     "conflict",
-    "resolve"
+    "resolve",
+    "merge"
   ],
   "activationEvents": [
-    "onCommand:somanyconflicts.scan",
-    "onCommand:somanyconflicts.start",
-    "onCommand:somanyconflicts.refresh",
-    "onCommand:somanyconflicts.next",
-    "onCommand:somanyconflicts.how",
+    "onCommand:somanyconflicts-jj.scan",
+    "onCommand:somanyconflicts-jj.start",
+    "onCommand:somanyconflicts-jj.refresh",
+    "onCommand:somanyconflicts-jj.next",
+    "onCommand:somanyconflicts-jj.how",
     "onView:suggestedConflictTreeView",
     "onView:allConflictTreeView"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "So Many Conflicts (JJ)",
+      "properties": {
+        "somanyconflicts-jj.namingConvention": {
+          "type": "string",
+          "enum": [
+            "jj-native",
+            "git-friendly"
+          ],
+          "default": "jj-native",
+          "description": "Naming convention for conflict sides. 'jj-native' uses Side 1, Side 2, etc. 'git-friendly' uses Current/Incoming (only for 2-way conflicts)."
+        },
+        "somanyconflicts-jj.scanMode": {
+          "type": "string",
+          "enum": [
+            "jj-cli",
+            "file-scan"
+          ],
+          "default": "jj-cli",
+          "description": "How to discover files with conflicts. 'jj-cli' uses `jj resolve --list` (recommended). 'file-scan' scans all files for JJ conflict markers."
+        }
+      }
+    },
     "colors": [
       {
         "id": "somanyconflicts.border_color",
@@ -59,7 +94,7 @@
       "activitybar": [
         {
           "id": "conflictTreeViewPanel",
-          "title": "So Many Conflicts",
+          "title": "So Many Conflicts (JJ)",
           "icon": "media/merge.png"
         }
       ]
@@ -69,13 +104,13 @@
         {
           "id": "suggestedConflictTreeView",
           "name": "Grouped and Ordered Conflicts",
-          "contextualTitle": "So Many Conflicts",
+          "contextualTitle": "So Many Conflicts (JJ)",
           "icon": "media/merge.png"
         },
         {
           "id": "allConflictTreeView",
-          "name": "All Merge Conflicts",
-          "contextualTitle": "So Many Conflicts",
+          "name": "All JJ Conflicts",
+          "contextualTitle": "So Many Conflicts (JJ)",
           "icon": "media/merge.png"
         }
       ]
@@ -83,12 +118,12 @@
     "menus": {
       "view/title": [
         {
-          "command": "somanyconflicts.refresh",
+          "command": "somanyconflicts-jj.refresh",
           "when": "view == suggestedConflictTreeView",
           "group": "navigation@10"
         },
         {
-          "command": "somanyconflicts.refresh",
+          "command": "somanyconflicts-jj.refresh",
           "when": "view == allConflictTreeView",
           "group": "navigation@10"
         }
@@ -97,34 +132,34 @@
     "viewsWelcome": [
       {
         "view": "suggestedConflictTreeView",
-        "contents": "Click this button to group and order related merge conflicts for quicker resolution.\n[Group Related Conflicts](command:somanyconflicts.start)"
+        "contents": "Click this button to group and order related JJ conflicts for quicker resolution.\n[Group Related Conflicts](command:somanyconflicts-jj.start)"
       },
       {
         "view": "allConflictTreeView",
-        "contents": "Click this button to scan all merge conflicts in the opened directory or repository.\n[Scan All Conflicts](command:somanyconflicts.scan)"
+        "contents": "Click this button to scan all JJ conflicts in the opened directory or repository.\n[Scan All Conflicts](command:somanyconflicts-jj.scan)"
       }
     ],
     "commands": [
       {
-        "command": "somanyconflicts.scan",
-        "title": "So Many Conflicts: Scan All Merge Conflicts"
+        "command": "somanyconflicts-jj.scan",
+        "title": "So Many Conflicts (JJ): Scan All JJ Conflicts"
       },
       {
-        "command": "somanyconflicts.start",
-        "title": "So Many Conflicts: Where to Start Resolving?"
+        "command": "somanyconflicts-jj.start",
+        "title": "So Many Conflicts (JJ): Where to Start Resolving?"
       },
       {
-        "command": "somanyconflicts.refresh",
-        "title": "So Many Conflicts: Refresh all Results",
+        "command": "somanyconflicts-jj.refresh",
+        "title": "So Many Conflicts (JJ): Refresh all Results",
         "icon": "$(refresh)"
       },
       {
-        "command": "somanyconflicts.next",
-        "title": "So Many Conflicts: What's Related Conflicts?"
+        "command": "somanyconflicts-jj.next",
+        "title": "So Many Conflicts (JJ): What's Related Conflicts?"
       },
       {
-        "command": "somanyconflicts.how",
-        "title": "So Many Conflicts: How to Resolve this Conflict?"
+        "command": "somanyconflicts-jj.how",
+        "title": "So Many Conflicts (JJ): How to Resolve this Conflict?"
       }
     ]
   },
@@ -165,7 +200,6 @@
     "@dagrejs/graphlib": "^2.1.4",
     "jaccard": "^0.4.0",
     "queue-typescript": "^1.0.1",
-    "simple-git": "^2.39.0",
     "string-similarity": "^4.0.4",
     "web-tree-sitter": "^0.19.4"
   }
