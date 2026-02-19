@@ -6,7 +6,7 @@ import { Symbol } from './Symbol'
 import { Conflict } from './Conflict'
 import { FileUtils } from './FileUtils'
 import { AlgUtils } from './AlgUtils'
-import * as TreeSitter from 'web-tree-sitter'
+import type * as TreeSitter from 'web-tree-sitter'
 import { Identifier } from './Identifier'
 import { Language, languages } from './Language'
 import { getStrategy, Strategy, NamingConvention } from './Strategy'
@@ -15,7 +15,38 @@ import { TextSection } from './TextSection'
 import { StringUtils } from './StringUtils'
 const graphlib = require('@dagrejs/graphlib')
 
-const treeSitterPromise = TreeSitter.Parser.init()
+// Lazy-loaded tree-sitter module
+let TreeSitterModule: typeof TreeSitter | null = null
+let treeSitterReady: Promise<void> | null = null
+
+async function ensureTreeSitter(): Promise<typeof TreeSitter> {
+  if (!TreeSitterModule) {
+    try {
+      TreeSitterModule = require('web-tree-sitter')
+      if (!treeSitterReady) {
+        treeSitterReady = TreeSitterModule!.Parser.init({
+          locateFile: (file: string) => path.join(__dirname, file),
+        }).catch((err: any) => {
+          console.error('[somanyconflicts-jj] TreeSitter init failed:', err?.message || err)
+          TreeSitterModule = null
+          treeSitterReady = null
+        })
+      }
+      await treeSitterReady
+    } catch (err: any) {
+      console.error('[somanyconflicts-jj] Failed to load web-tree-sitter:', err?.message || err)
+      TreeSitterModule = null
+      treeSitterReady = null
+      throw err
+    }
+  } else if (treeSitterReady) {
+    await treeSitterReady
+  }
+  if (!TreeSitterModule) {
+    throw new Error('web-tree-sitter is not available')
+  }
+  return TreeSitterModule
+}
 
 export class SoManyConflicts {
   /** singleton treesitter instances for different languages */
@@ -148,17 +179,17 @@ export class SoManyConflicts {
   }
 
   private static async initParser(language: Language, queryString: string) {
-    await treeSitterPromise
-    const parser = new TreeSitter.Parser()
+    const ts = await ensureTreeSitter()
+    const parser = new ts.Parser()
 
     const langFile = path.join(
       __dirname,
-      '../parsers',
+      'parsers',
       language.toLowerCase() + '.wasm',
     )
-    const langObj = await TreeSitter.Language.load(langFile)
+    const langObj = await ts.Language.load(langFile)
     parser.setLanguage(langObj)
-    const query = new TreeSitter.Query(langObj, queryString)
+    const query = new ts.Query(langObj, queryString)
     this.queriers.set(language, [parser, query])
   }
 

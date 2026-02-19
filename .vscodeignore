@@ -1,8 +1,10 @@
 .vscode/**
 .vscode-test/**
-out/test/**
-
 src/**
+out/**
+node_modules/**
+parsers/**
+scripts/**
 .gitignore
 .eslintcache
 pnpm-lock.yaml
@@ -10,8 +12,9 @@ pnpm-lock.yaml
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
+**/.eslintrc.yml
 **/*.map
-**/*.ts
+esbuild.mjs
 
 .jj/**
 _jj-conflicts/**
@@ -20,4 +23,6 @@ conflict-example.txt
 .DS_Store
 AGENTS.md
 CONTRIBUTING.md
-node_modules/**
+
+!dist/**
+!dist/parsers/**

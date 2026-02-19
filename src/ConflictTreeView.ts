@@ -99,8 +99,14 @@ export async function conflictSectionsToTreeItem(
       )
     }
     const range = new vscode.Range(start, conflict.range.end)
-    const label =
-      conflictSection.printLineRange() + ' ' + doc.getText(range).trimLeft()
+    const rawText = doc.getText(range).trimLeft()
+    const firstLine = rawText.split('\n')[0] || 'conflict'
+    const maxLen = 60
+    const preview =
+      firstLine.length > maxLen
+        ? firstLine.substring(0, maxLen) + '...'
+        : firstLine
+    const label = conflictSection.printLineRange() + '  ' + preview
     const newConflict = new ConflictTreeItem(
       label,
       conflict.uri,
@@ -138,12 +144,31 @@ export async function suggestionsToTreeItem(
   suggestions: ConflictSection[][],
   parents: ConflictTreeItem[],
 ) {
-  let idx = 0
   parents.length = 0
   for (const group of suggestions) {
-    idx++
     const groupRoot = new ConflictTreeItem(
-      'Group' + idx + ' (' + group.length + ')',
+      (() => {
+        const fileNames = [
+          ...new Set(
+            group.map((s) => {
+              const fsPath = s.conflict.uri?.fsPath || ''
+              return fsPath.split('/').pop() || 'unknown'
+            }),
+          ),
+        ]
+        const filesLabel =
+          fileNames.length <= 2
+            ? fileNames.join(', ')
+            : fileNames.slice(0, 2).join(', ') + ' +' + (fileNames.length - 2)
+        return (
+          filesLabel +
+          ' (' +
+          group.length +
+          ' conflict' +
+          (group.length > 1 ? 's' : '') +
+          ')'
+        )
+      })(),
       undefined,
       undefined,
       [],
@@ -166,8 +191,14 @@ export async function suggestionsToTreeItem(
         )
       }
       const range = new vscode.Range(start, conflict.range.end)
-      const label =
-        conflictSection.printLineRange() + ' ' + doc.getText(range).trimLeft()
+      const rawText = doc.getText(range).trimLeft()
+      const firstLine = rawText.split('\n')[0] || 'conflict'
+      const maxLen = 60
+      const preview =
+        firstLine.length > maxLen
+          ? firstLine.substring(0, maxLen) + '...'
+          : firstLine
+      const label = conflictSection.printLineRange() + '  ' + preview
       const newConflict = new ConflictTreeItem(
         label,
         conflict.uri,

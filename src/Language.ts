@@ -43,11 +43,10 @@ export const languages = {
         ]
       )
       (new_expression
-        constructor:[
-            (identifier) @type-ref
-            (member_expression property: (property_identifier) @constructor-ref)
-          ]
-      )
+        constructor: (identifier) @type-ref)
+      (new_expression
+        constructor: (member_expression
+          property: (property_identifier) @constructor-ref))
       (labeled_statement label: (statement_identifier) @field-def)
       (member_expression property: (property_identifier) @field-ref)
       (identifier) @var-ref
@@ -68,10 +67,7 @@ export const languages = {
       (function_declaration name: (identifier) @function-def)
       (generator_function_declaration name: (identifier) @function-def)
       (method_definition name: (property_identifier) @method-def)
-      (variable_declarator
-        name: (identifier) @var-def
-        type: (type_annotation)? @type-ref
-      )
+      (variable_declarator name: (identifier) @var-def)
       (for_in_statement left: (identifier) @var-def)
       (array_pattern (identifier) @var-def)
       (object_pattern [
@@ -97,9 +93,10 @@ export const languages = {
       )
       (member_expression property: (property_identifier) @field-ref)
       (new_expression
-        constructor: (identifier) @type-ref
-        (member_expression property: (property_identifier) @constructor-ref)
-      )
+        constructor: (identifier) @type-ref)
+      (new_expression
+        constructor: (member_expression
+          property: (property_identifier) @constructor-ref))
       (type_identifier) @type-ref
       (identifier) @var-ref
     `,

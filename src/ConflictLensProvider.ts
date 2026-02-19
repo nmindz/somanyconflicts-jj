@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { ConflictSection } from './ConflictSection'
 import { Parser } from './Parser'
+import { NamingConvention } from './Strategy'
 
 export class ConflictLensProvider implements vscode.CodeLensProvider {
   public provideCodeLenses(
@@ -19,23 +20,70 @@ export class ConflictLensProvider implements vscode.CodeLensProvider {
       return []
     }
 
+    const config = vscode.workspace.getConfiguration('somanyconflicts-jj')
+    const naming = config.get<NamingConvention>(
+      'namingConvention',
+      'jj-native',
+    )
+
     // generate code lens for all conflict sections
     conflictSections.forEach((conflictSection) => {
-      const nextCommand: vscode.Command = {
-        command: 'somanyconflicts-jj.next',
-        title: 'Show Related Conflicts',
-        arguments: ['current-conflict', conflictSection.conflict],
-      }
-      const range: vscode.Range = conflictSection.conflict.range
-      codeLenses.push(new vscode.CodeLens(range, nextCommand))
+      const conflict = conflictSection.conflict
+      const range: vscode.Range = conflict.range
+      const sideCount = conflict.sideCount
 
-      const strategyCommand: vscode.Command = {
-        command: 'somanyconflicts-jj.how',
-        title: 'Recommend Resolution Strategy',
-        arguments: ['current-conflict', conflictSection.conflict],
+      // Accept Side N actions
+      for (let i = 0; i < sideCount; i++) {
+        let title: string
+        if (naming === 'git-friendly' && sideCount === 2) {
+          title = i === 0 ? 'Accept Current' : 'Accept Incoming'
+        } else {
+          title = `Accept Side ${i + 1}`
+        }
+        codeLenses.push(
+          new vscode.CodeLens(range, {
+            command: 'somanyconflicts-jj.accept',
+            title,
+            arguments: [document.uri, range, i, sideCount],
+          }),
+        )
       }
 
-      codeLenses.push(new vscode.CodeLens(range, strategyCommand))
+      // Accept All
+      if (sideCount > 1) {
+        codeLenses.push(
+          new vscode.CodeLens(range, {
+            command: 'somanyconflicts-jj.accept',
+            title: 'Accept All',
+            arguments: [document.uri, range, -2, sideCount],
+          }),
+        )
+      }
+
+      // Accept None
+      codeLenses.push(
+        new vscode.CodeLens(range, {
+          command: 'somanyconflicts-jj.accept',
+          title: 'Accept None',
+          arguments: [document.uri, range, -1, sideCount],
+        }),
+      )
+
+      // Existing commands
+      codeLenses.push(
+        new vscode.CodeLens(range, {
+          command: 'somanyconflicts-jj.next',
+          title: 'Show Related Conflicts',
+          arguments: ['current-conflict', conflict],
+        }),
+      )
+      codeLenses.push(
+        new vscode.CodeLens(range, {
+          command: 'somanyconflicts-jj.how',
+          title: 'Recommend Resolution Strategy',
+          arguments: ['current-conflict', conflict],
+        }),
+      )
     })
 
     return codeLenses
@@ -45,14 +93,6 @@ export class ConflictLensProvider implements vscode.CodeLensProvider {
     codeLens: vscode.CodeLens,
     token: vscode.CancellationToken,
   ) {
-    console.log('Resolved codelens')
-
-    codeLens.command = {
-      title: 'Show Related Conflicts',
-      tooltip: 'Relevant conflict blocks suggested by SoManyConflicts (JJ)',
-      command: 'somanyconflicts-jj.test',
-      arguments: ['Argument 1', false],
-    }
     return codeLens
   }
 }

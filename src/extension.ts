@@ -283,6 +283,74 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   )
 
+  // Accept a specific side to resolve a conflict
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'somanyconflicts-jj.accept',
+      async (
+        uri: vscode.Uri,
+        conflictRange: vscode.Range,
+        sideIndex: number,
+        sideCount: number,
+      ) => {
+        const editor = await vscode.window.showTextDocument(uri)
+        const document = editor.document
+        const text = document.getText()
+
+        // Re-parse to get fresh conflict data at this range
+        const sections = Parser.parse(document.uri, text)
+        const conflictSections = sections.filter(
+          (sec) => sec instanceof ConflictSection,
+        ) as ConflictSection[]
+
+        // Find the conflict that matches this range
+        const section = conflictSections.find(
+          (cs) => cs.conflict.range.start.line === conflictRange.start.line,
+        )
+
+        if (!section) {
+          vscode.window.showWarningMessage(
+            'Could not find the conflict to resolve.',
+          )
+          return
+        }
+
+        const conflict = section.conflict
+        let replacementLines: string[] = []
+
+        if (sideIndex === -1) {
+          // Accept None — replace with empty
+          replacementLines = []
+        } else if (sideIndex === -2) {
+          // Accept All — concatenate all sides
+          for (let i = 0; i < conflict.sideCount; i++) {
+            replacementLines.push(...conflict.getSideContent(i))
+          }
+        } else if (sideIndex >= 0 && sideIndex < conflict.sideCount) {
+          // Accept specific side
+          replacementLines = conflict.getSideContent(sideIndex)
+        } else {
+          vscode.window.showWarningMessage('Invalid side index.')
+          return
+        }
+
+        const replacement = replacementLines.join('').replace(/\n$/, '')
+
+        await editor.edit((editBuilder) => {
+          // Replace the entire conflict block (from <<<<<<< to >>>>>>>)
+          const fullRange = new vscode.Range(
+            new vscode.Position(conflict.range.start.line, 0),
+            new vscode.Position(
+              conflict.range.end.line,
+              document.lineAt(conflict.range.end.line).text.length,
+            ),
+          )
+          editBuilder.replace(fullRange, replacement)
+        })
+      },
+    ),
+  )
+
   const codeLensProviderDisposable = vscode.languages.registerCodeLensProvider(
     '*',
     new ConflictLensProvider(),
