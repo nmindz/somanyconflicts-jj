@@ -4,6 +4,28 @@ All notable changes to the "somanyconflicts-jj" extension will be documented in 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [v0.1.0] - 2026-02-19
+
+### Added
+
+- **esbuild bundling**: Extension is now bundled into a single `dist/extension.js` with all runtime dependencies included. VSIX packages are self-contained — no `node_modules` needed.
+- **Accept Side CodeLens actions**: One-click "Accept Side 1" / "Accept Side 2" / "Accept All" / "Accept None" inline actions above each conflict block. Respects naming convention setting (Git-friendly: "Accept Current" / "Accept Incoming" for 2-way).
+- `somanyconflicts-jj.accept` command for programmatic conflict resolution.
+- `esbuild.mjs` build configuration with WASM file copying.
+- `check-types` and `package` npm scripts.
+
+### Fixed
+
+- **Extension activation failure**: `web-tree-sitter` is now lazy-loaded (was eagerly imported at module scope, causing silent crash before `activate()` ran).
+- **Tree-sitter query errors**: Fixed `new_expression` patterns in JavaScript and TypeScript queries for compatibility with tree-sitter grammar v0.25+.
+- **Double newline on accept**: Content lines already include `\n` terminators — join with empty string instead of `\n`.
+
+### Improved
+
+- **Group labels**: Tree view groups now show file names (e.g., "utils.ts, config.ts (3 conflicts)") instead of generic "Group1", "Group2".
+- **Conflict labels**: Tree view items show a clean first-line preview (truncated to 60 chars) instead of raw conflict marker text.
+- Build pipeline: `compile` now runs `tsc --noEmit` + esbuild. `watch` runs both in parallel.
+
 ## [v1.0.0-jj] - 2026-02-18
 
 ### Fork: Adapted for Jujutsu (JJ)

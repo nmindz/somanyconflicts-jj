@@ -44,6 +44,7 @@ literal content of side 2
 - Suggest resolution strategy based on already resolved relevant conflicts.
 - Full N-way conflict support — parse arbitrary numbers of diff and literal sections.
 - Configurable naming: JJ-native ("Side 1", "Side 2") or Git-friendly ("Current", "Incoming").
+- **One-click resolution**: Accept Side 1 / Side 2 / … / Accept All / Accept None CodeLens actions above each conflict block.
 
 ## Language Support
 
@@ -65,10 +66,10 @@ literal content of side 2
 1. Build the extension package:
 
    ```bash
-   npx @vscode/vsce package
+   npx @vscode/vsce package --no-dependencies
    ```
 
-   This produces a `.vsix` file (e.g., `somanyconflicts-jj-1.0.0-jj.vsix`).
+   This produces a `.vsix` file (e.g., `somanyconflicts-jj-0.1.0.vsix`).
 
 2. In VSCode, open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and run:
 
@@ -117,6 +118,7 @@ pnpm install
 
 # Compile TypeScript to JavaScript
 pnpm run compile
+# This produces dist/extension.js (bundled) and out/ (for tests)
 
 # Launch Extension Development Host in VSCode
 # Press F5 (or use the "Run Extension" launch config)
@@ -124,21 +126,22 @@ pnpm run compile
 
 ### Available Scripts
 
-| Command                      | Description                       |
-| ---------------------------- | --------------------------------- |
-| `pnpm run compile`           | Compile TypeScript → `out/`       |
-| `pnpm run watch`             | Watch mode — recompile on changes |
-| `pnpm run lint`              | Run ESLint on `src/**/*.ts`       |
-| `pnpm run test`              | Run the test suite                |
-| `pnpm run vscode:prepublish` | Compile for publishing            |
+| Command                | Description                                          |
+| ---------------------- | ---------------------------------------------------- |
+| `pnpm run compile`     | Type-check (tsc --noEmit) + esbuild bundle → `dist/` |
+| `pnpm run check-types` | Type-check only (tsc --noEmit)                       |
+| `pnpm run watch`       | Continuous compilation (esbuild watch + tsc watch)   |
+| `pnpm run lint`        | ESLint with cache on `src/**/*.ts`                   |
+| `pnpm run test`        | Full suite: compile + lint + Mocha via vscode-test   |
+| `pnpm run package`     | Production bundle (minified, no sourcemaps)          |
 
 ### Package as VSIX
 
 ```bash
-npx @vscode/vsce package
+npx @vscode/vsce package --no-dependencies
 ```
 
-This generates a `.vsix` file you can install locally or distribute.
+The extension is self-contained (esbuild bundles all dependencies). The `--no-dependencies` flag is required since pnpm's `node_modules` layout isn't compatible with vsce's npm-based resolver.
 
 ## Attribution
 
